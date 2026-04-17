@@ -45,38 +45,4 @@ RUN apt-get update \
     python3-venv \
   && rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable && corepack prepare pnpm@10.23.0 --activate
-
-ENV NPM_CONFIG_PREFIX=/data/npm
-ENV NPM_CONFIG_CACHE=/data/npm-cache
-ENV PNPM_HOME=/data/pnpm
-ENV PNPM_STORE_DIR=/data/pnpm-store
-ENV PATH="/data/npm/bin:/data/pnpm:${PATH}"
-
-WORKDIR /app
-
-COPY package.json ./
-RUN npm install --omit=dev && npm cache clean --force
-
-COPY --from=openclaw-build /openclaw /openclaw
-
-RUN printf '%s\n' '#!/usr/bin/env bash' 'exec node /openclaw/dist/entry.js "$@"' > /usr/local/bin/openclaw \
-  && chmod +x /usr/local/bin/openclaw
-
-COPY src ./src
-
-# ── Startup script: launch gateway + wrapper together ──
-RUN printf '%s\n' \
-  '#!/bin/sh' \
-  'set -e' \
-  'echo "Starting OpenClaw gateway..."' \
-  'openclaw gateway &' \
-  'echo "Starting wrapper server..."' \
-  'exec node /app/src/server.js' \
-  > /app/start.sh \
-  && chmod +x /app/start.sh
-
-EXPOSE 8080
-
-ENTRYPOINT ["tini", "--"]
-CMD ["/app/start.sh"]
+RUN corepack enable 
